@@ -19,8 +19,12 @@ public class ToDoController {
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
     public Task getTask(@PathVariable UUID id){
-//        return new Task("TaskExample", "High", true);
         return service.getTaskById(id);
+    }
+
+    @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
+    public void updateTask(@PathVariable UUID id, @RequestBody Task updatedTask){
+        service.updateTask(updatedTask);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)

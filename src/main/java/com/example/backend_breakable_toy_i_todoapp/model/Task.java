@@ -1,5 +1,8 @@
 package com.example.backend_breakable_toy_i_todoapp.model;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -9,6 +12,7 @@ import java.util.UUID;
 // !Para operaciones de fechas utilizar Date
 
 public class Task {
+    private static final Log log = LogFactory.getLog(Task.class);
     private UUID id;
     private String name;
     private LocalDate dueDate;
@@ -21,6 +25,7 @@ public class Task {
         this.createdAt = LocalDate.now();
         this.id = UUID.randomUUID();
     }
+
     // Task constructor when no dueDate is provided
     public Task(String name, String priority){
         this.id = UUID.randomUUID();
@@ -44,16 +49,13 @@ public class Task {
 
     public void setDueDate(LocalDate dueDate){
         this.dueDate = dueDate;
-        setUpdatedAt();
     }
     public void setDone(){
-        setUpdatedAt();
         doneDate = LocalDate.now();
     }
 
     public void setPriority(String priority) {
         this.priority = priority;
-        setUpdatedAt();
     }
 
     public void setID(UUID id){
@@ -90,5 +92,19 @@ public class Task {
 
     public LocalDate getUpdatedAt() {
         return updatedAt;
+    }
+
+    public void setDoneDate(LocalDate doneDate) {
+        this.doneDate = doneDate;
+    }
+
+    public void updateTask(Task newTask){
+        System.out.println("Hello");
+        setPriority(newTask.getPriority());
+        setName(newTask.getName());
+        setDueDate(newTask.getDueDate());
+        setUpdatedAt();
+        setDoneDate(newTask.getDoneDate());
+        log.debug(this);
     }
 }

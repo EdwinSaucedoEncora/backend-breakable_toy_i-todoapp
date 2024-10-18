@@ -28,4 +28,7 @@ public class TaskService {
     public void addTask(Task newTask){
         taskDAO.addTask(newTask);
     }
+    public void updateTask(Task updatedTask){
+        taskDAO.updateTask(updatedTask);
+    }
 }

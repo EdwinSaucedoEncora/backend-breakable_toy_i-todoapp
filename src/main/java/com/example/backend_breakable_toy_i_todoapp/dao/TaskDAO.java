@@ -10,10 +10,10 @@ import java.util.UUID;
 // It is recommended to implement interface many cases on DAO and Service and in controller if many methods will be
 // implemented.
 @Repository
-public class TaskDAO {
+public class TaskDAO implements TaskDAOInterface{
     private final ArrayList<Task> tasks;
     public TaskDAO(){
-        tasks = new ArrayList<Task>();
+        tasks = new ArrayList<>();
         Task task2 = new Task("Task 2", "Medium");
         task2.setID(UUID.fromString("2e96986b-8b32-4ace-8582-4a8369c5720a"));
         tasks.add(new Task("Task 1", "High"));
@@ -27,17 +27,13 @@ public class TaskDAO {
         return tasks;
     }
     public Task getTask(UUID id){
-        for(Task task : tasks){
-            if(task.getId().equals(id)){
-                return  task;
-            }
-        }
-        return null;
+        return tasks.stream().filter(task -> task.getId().equals(id)).findAny().orElse(null);
     }
     public void deleteTask(UUID id){
         tasks.removeIf(task -> task.getId().equals(id));
-        for(Task task : tasks){
-            System.out.println(task.getId());
-        }
+    }
+
+    public void updateTask(Task updatedTask){
+        tasks.stream().filter(task -> task.getId().equals(updatedTask.getId())).findAny().ifPresent(target -> target.updateTask(updatedTask));
     }
 }

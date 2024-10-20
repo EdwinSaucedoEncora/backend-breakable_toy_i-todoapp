@@ -6,6 +6,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 // Repository must be injected (DAO)
@@ -14,8 +15,8 @@ public class TaskService {
     @Autowired
     private TaskDAO taskDAO;
 
-    public ArrayList<Task> getAllTasks(){
-        return  taskDAO.getAll();
+    public List<Task> getAllTasks(){
+        return new ArrayList<Task>(taskDAO.getAll().values());
     }
 
     public Task getTaskById(UUID id){
@@ -28,7 +29,8 @@ public class TaskService {
     public void addTask(Task newTask){
         taskDAO.addTask(newTask);
     }
-    public void updateTask(Task updatedTask){
-        taskDAO.updateTask(updatedTask);
+    public void updateTask(UUID id, Task updatedTask){
+        taskDAO.updateTask(id, updatedTask);
     }
+    //
 }

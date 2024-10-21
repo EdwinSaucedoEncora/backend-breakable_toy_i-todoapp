@@ -7,7 +7,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TaskServiceInterface {
-    public ResponseEntity<List<Task>> getAllTasks();
+    public ResponseEntity<List<Task>> getAllTasks(String filter, Integer page);
     public ResponseEntity<Task> getTaskById(UUID id);
     public ResponseEntity<String> deleteTaskById(UUID id);
     public ResponseEntity<String> addTask(Task newTask);

@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -18,9 +19,13 @@ import java.util.UUID;
 public class ToDoController implements TaskServiceInterface {
     @Autowired TaskService service;
     @RequestMapping
-    public ResponseEntity<List<Task>> getAllTasks() {
-
-        return new ResponseEntity<>(service.getAllTasks(), HttpStatus.OK);
+    public ResponseEntity<List<Task>> getAllTasks(@RequestParam(required = false) String filter, @RequestParam(defaultValue = "1") Integer page) {
+        try {
+            return new ResponseEntity<>(service.getAllTasks(filter, page), HttpStatus.OK);
+        } catch (RuntimeException e) {
+            // If any error return an empty list to avoid rendering errors
+            return new ResponseEntity<>(new ArrayList<Task>(), HttpStatus.BAD_REQUEST);
+        }
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)

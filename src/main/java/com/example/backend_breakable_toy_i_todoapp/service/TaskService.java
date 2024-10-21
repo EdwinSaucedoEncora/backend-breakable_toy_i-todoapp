@@ -7,18 +7,58 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
+import java.util.concurrent.atomic.AtomicInteger;
 
 @Service
 public class TaskService {
     @Autowired
     private TaskDAO taskDAO;
-    public static List<String> priorities = List.of("high", "medium", "low");
+    protected final int PAGE_SIZE = 10;
+    protected final List<String> priorities = List.of("high", "medium", "low");
 
-    public List<Task> getAllTasks(){
-        return new ArrayList<Task>(taskDAO.getAll().values());
+    public List<Task> getAllTasks(String filter, Integer page){
+        List<String> filters = List.of(filter.split("&"));
+        List <Task> tasks = new ArrayList<Task>(taskDAO.getAll().values());
+        for(String filtered : filters){
+            if(filtered.contains("status")){
+                // Filter by status
+                if(Arrays.asList(filtered.split("=")).contains("done")){
+                    tasks = tasks.stream().filter(task -> task.getDoneDate() != null).toList();
+                }
+                else if(Arrays.asList(filtered.split("=")).contains("undone")) {
+                    tasks = tasks.stream().filter(task -> task.getDoneDate() == null).toList();
+                }
+            }
+            if(filtered.contains("priority")){
+                // Filter by priority
+                if(Arrays.asList(filtered.split("=")).contains("high")){
+                    tasks = tasks.stream().filter(task -> task.getPriority().equals("high")).toList();
+                }
+                else if(Arrays.asList(filtered.split("=")).contains("medium")) {
+                    tasks = tasks.stream().filter(task -> task.getPriority().equals("medium")).toList();
+                }
+                else if(Arrays.asList(filtered.split("=")).contains("low")) {
+                    tasks = tasks.stream().filter(task -> task.getPriority().equals("low")).toList();
+                }
+            }
+            if(filtered.contains("name")){
+               String name = Arrays.asList(filtered.split("=")).get(1);
+               if(name != null){
+                   // Filter if contains similar name
+                   tasks = tasks.stream()
+                           .filter(task -> task.getName().toLowerCase().contains(name.toLowerCase()))
+                           .toList();
+               }
+            }
+        }
+        // Used for autoincremental index;
+        AtomicInteger index = new AtomicInteger();
+        // Get autoincrement index and filter by pagination
+        return tasks.stream()
+                .map(el -> index.getAndIncrement())
+                .filter(i -> (i < (page * PAGE_SIZE) && i >= ((page - 1) * PAGE_SIZE)))
+                .map(tasks::get).toList();
     }
 
     public Task getTaskById(UUID id){

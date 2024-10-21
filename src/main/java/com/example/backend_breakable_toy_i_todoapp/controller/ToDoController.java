@@ -2,9 +2,12 @@ package com.example.backend_breakable_toy_i_todoapp.controller;
 
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import com.example.backend_breakable_toy_i_todoapp.service.TaskService;
+import com.example.backend_breakable_toy_i_todoapp.service.TaskServiceInterface;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -12,44 +15,42 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping(value="/todos")
-public class ToDoController {
+public class ToDoController implements TaskServiceInterface {
     @Autowired TaskService service;
-    private static final Logger logger = LoggerFactory.getLogger(ToDoController.class);
-    // ResponseEntity => Body, Status
     @RequestMapping
-    // public array <interface> => e.g List<Task>
-    // notation @QueryParam => para filtro de datos (String | Int)
-    public List<Task> getAllTasks() {
-        //logger.debug("Hello Encora!");
-        //Specify into Config depend on the environment;
-//        logger.info("Hello Info Encora");
-//        logger.error("Hello Error Encora");
-        //toString @override
-        //ToString
-        return service.getAllTasks();
+    public ResponseEntity<List<Task>> getAllTasks() {
+
+        return new ResponseEntity<>(service.getAllTasks(), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public Task getTask(@PathVariable UUID id){
-        return service.getTaskById(id);
+    public ResponseEntity<Task> getTaskById(@PathVariable UUID id){
+        return new ResponseEntity<>(service.getTaskById(id), HttpStatus.OK);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-    public void updateTask(@PathVariable UUID id, @RequestBody Task updatedTask){
-        service.updateTask(id, updatedTask);
+    public ResponseEntity<String> updateTask(@PathVariable UUID id, @RequestBody Task updatedTask){
+        return service.updateTask(id, updatedTask);
     }
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public void deleteTask(@PathVariable UUID id){
-         service.deleteTaskById(id);
+    public ResponseEntity<String> deleteTaskById(@PathVariable UUID id){
+         return service.deleteTaskById(id);
     }
 
     @RequestMapping(method = RequestMethod.POST)
-    public void addTask(@RequestBody Task newTask){
-        service.addTask(newTask);
+    public ResponseEntity<String> addTask(@RequestBody Task newTask){
+        return service.addTask(newTask);
     }
-    // Test crear mock de llamada, en test revisar que se mande a llamar el endpoint que se quiere, y el status que se devolvio, y el body
-    // JUnit | Mockito => Juntos
 
+    @RequestMapping(value = "{id}/done", method = RequestMethod.PUT)
+    public ResponseEntity<String> setDoneDateById(@PathVariable UUID id){
+        return service.setDoneDateById(id);
+    }
+
+    @RequestMapping(value = "{id}/undone", method = RequestMethod.PUT)
+    public ResponseEntity<String> unsetDoneDateById(@PathVariable UUID id){
+        return service.unsetDoneDateById(id);
+    }
 }
 

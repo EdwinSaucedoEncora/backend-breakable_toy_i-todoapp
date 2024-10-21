@@ -1,5 +1,6 @@
 package com.example.backend_breakable_toy_i_todoapp.controller;
 
+import com.example.backend_breakable_toy_i_todoapp.model.AllTasksResponse;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import com.example.backend_breakable_toy_i_todoapp.service.TaskService;
 import com.example.backend_breakable_toy_i_todoapp.service.TaskServiceInterface;
@@ -15,16 +16,17 @@ import java.util.List;
 import java.util.UUID;
 
 @RestController
+@CrossOrigin(origins = "http://localhost:8080")
 @RequestMapping(value="/todos")
-public class ToDoController implements TaskServiceInterface {
+public class ToDoController {
     @Autowired TaskService service;
     @RequestMapping
-    public ResponseEntity<List<Task>> getAllTasks(@RequestParam(required = false) String filter, @RequestParam(defaultValue = "1") Integer page) {
+    public ResponseEntity<AllTasksResponse> getAllTasks(@RequestParam(defaultValue = "") String name, @RequestParam(defaultValue = "all") String priority, @RequestParam(defaultValue = "all") String status, @RequestParam(defaultValue = "1") Integer page) {
         try {
-            return new ResponseEntity<>(service.getAllTasks(filter, page), HttpStatus.OK);
+            return new ResponseEntity<>(service.getAllTasks(status, name, priority, page), HttpStatus.OK);
         } catch (RuntimeException e) {
             // If any error return an empty list to avoid rendering errors
-            return new ResponseEntity<>(new ArrayList<Task>(), HttpStatus.BAD_REQUEST);
+            return new ResponseEntity<>(new AllTasksResponse(null, 0), HttpStatus.BAD_REQUEST);
         }
     }
 

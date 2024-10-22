@@ -2,6 +2,7 @@ package com.example.backend_breakable_toy_i_todoapp.service;
 
 import com.example.backend_breakable_toy_i_todoapp.dao.TaskDAO;
 import com.example.backend_breakable_toy_i_todoapp.model.AllTasksResponse;
+import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -107,5 +108,9 @@ public class TaskService implements  TaskServiceInterface{
         }
         taskDAO.unsetDoneDate(id);
         return new ResponseEntity<>("Task done date remove.", HttpStatus.OK);
+    }
+
+    public ResponseEntity<AverageDetails> getAverageDetails(){
+        return new ResponseEntity<>(taskDAO.getAverageDetails(), HttpStatus.OK);
     }
 }

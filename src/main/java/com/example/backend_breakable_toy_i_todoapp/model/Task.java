@@ -2,6 +2,7 @@ package com.example.backend_breakable_toy_i_todoapp.model;
 
 import java.time.LocalDate;
 import java.util.UUID;
+import java.time.temporal.ChronoUnit;
 
 public class Task {
     private final UUID id;
@@ -96,5 +97,12 @@ public class Task {
 
     public void setDueDate(LocalDate dueDate) {
         this.dueDate = dueDate;
+    }
+
+    public long getDiffDays(){
+        if(dueDate == null || dueDate.isBefore(LocalDate.now())) {
+            return 0;
+        }
+        return Math.abs(ChronoUnit.DAYS.between(dueDate, LocalDate.now()));
     }
 }

@@ -2,7 +2,9 @@ package com.example.backend_breakable_toy_i_todoapp.service;
 
 import com.example.backend_breakable_toy_i_todoapp.dao.TaskDAO;
 import com.example.backend_breakable_toy_i_todoapp.model.AllTasksResponse;
+import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
+import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -18,8 +20,13 @@ public class TaskService implements  TaskServiceInterface{
     protected final int PAGE_SIZE = 10;
     protected final List<String> priorities = List.of("high", "medium", "low");
 
-    public AllTasksResponse getAllTasks(String status, String name, String priority, Integer page){
+    public AllTasksResponse getAllTasks(String status, String name, String priority, Integer page, String sort){
         List <Task> tasks = new ArrayList<Task>(taskDAO.getAll().values());
+        // Sorting by
+        if(sort != null){
+            Comparator<Task> sortComparator = getTaskComparator(sort);
+            tasks = tasks.stream().sorted(Comparator.nullsLast(sortComparator)).toList();
+        }
         int size = tasks.size();
         if(status != null){
             // Filter by status
@@ -57,6 +64,19 @@ public class TaskService implements  TaskServiceInterface{
                 .map(tasks::get).toList();
         AllTasksResponse tasksResponse  = new AllTasksResponse(filtered, size);
         return tasksResponse;
+    }
+
+    private static @NotNull Comparator<Task> getTaskComparator(String sort) {
+        Comparator<Task> sortComparator;
+        if(sort.equals("dueDate")){
+            sortComparator = (t1, t2) -> t1.getDueDate() != null && t2.getDueDate() != null ? t1.getDueDate().compareTo(t2.getDueDate()) : 1;
+        } else if (sort.equals("priority")) {
+            sortComparator = (t1, t2) -> t1.getPriority().toUpperCase().compareTo(t2.getPriority().toUpperCase());
+        } else {
+            sortComparator = (t1, t2) -> t1.getName().toUpperCase().compareTo(t2.getName().toUpperCase());
+
+        }
+        return sortComparator;
     }
 
     public Task getTaskById(UUID id){
@@ -107,5 +127,9 @@ public class TaskService implements  TaskServiceInterface{
         }
         taskDAO.unsetDoneDate(id);
         return new ResponseEntity<>("Task done date remove.", HttpStatus.OK);
+    }
+
+    public ResponseEntity<AverageDetails> getAverageDetails(){
+        return new ResponseEntity<>(taskDAO.getAverageDetails(), HttpStatus.OK);
     }
 }

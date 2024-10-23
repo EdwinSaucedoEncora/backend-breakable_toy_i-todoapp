@@ -1,10 +1,14 @@
 package com.example.backend_breakable_toy_i_todoapp.dao;
 
+import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import org.springframework.stereotype.Repository;
 
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
 public class TaskDAO implements TaskDAOInterface{
@@ -49,4 +53,45 @@ public class TaskDAO implements TaskDAOInterface{
         targetTask.unsetDoneDate();
     }
 
+    public AverageDetails getAverageDetails(){
+        AtomicLong highCount = new AtomicLong();
+        AtomicLong highAverage = new AtomicLong();
+        AtomicLong mediumCount = new AtomicLong();
+        AtomicLong mediumAverage = new AtomicLong();;
+        AtomicLong lowCount = new AtomicLong();;
+        AtomicLong lowAverage = new AtomicLong();;
+        List<Task> taskList = tasks.values().stream().filter(task -> task.getDueDate() != null && task.getDoneDate() == null).toList();
+        Comparator<Task> comparator = (t1, t2) -> t1.getPriority().compareTo(t2.getPriority());
+        taskList.stream().sorted(comparator).forEach(task -> {
+            if(task.getPriority().equals("high")){
+                highCount.getAndIncrement();
+                highAverage.addAndGet(task.getDiffDays());
+            }
+            if(task.getPriority().equals("medium")){
+                mediumCount.getAndIncrement();
+                mediumAverage.addAndGet(task.getDiffDays());
+            }
+            if(task.getPriority().equals("low")){
+                lowCount.getAndIncrement();
+                lowAverage.addAndGet(task.getDiffDays());
+            }
+        });
+
+        double hAverage = 0, mAverage = 0, lAverage = 0, totalAverage = 0;
+        if(highCount.getPlain() > 0){
+            hAverage = (double) highAverage.getPlain() /highCount.getPlain();
+        }
+        if(mediumCount.getPlain() > 0){
+            mAverage = (double) mediumAverage.getPlain() /mediumCount.getPlain();
+        }
+        if(lowCount.getPlain() > 0){
+            lAverage = (double) lowAverage.getPlain() /lowCount.getPlain();
+        }
+
+        double totalAverageDivider = (highCount.getPlain() + mediumCount.getPlain() + lowCount.getPlain());
+        totalAverageDivider = totalAverageDivider > 0 ? totalAverageDivider : 1;
+        totalAverage = (double) ((highAverage.getPlain() + mediumAverage.getPlain() + lowAverage.getPlain()) / totalAverageDivider);
+
+        return new AverageDetails(hAverage, mAverage, lAverage, totalAverage);
+    }
 }

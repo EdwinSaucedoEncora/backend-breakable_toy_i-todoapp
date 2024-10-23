@@ -1,5 +1,6 @@
 package com.example.backend_breakable_toy_i_todoapp.dao;
 
+import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 
 import java.util.LinkedHashMap;
@@ -14,4 +15,5 @@ public interface TaskDAOInterface {
     public boolean hasTask(UUID id);
     public void setDoneDate(UUID id);
     public void unsetDoneDate(UUID id);
+    public AverageDetails getAverageDetails();
 }

@@ -100,9 +100,9 @@ public class Task {
     }
 
     public long getDiffDays(){
-        if(dueDate == null || dueDate.isBefore(LocalDate.now())) {
+        if(doneDate == null || doneDate.isBefore(createdAt)) {
             return 0;
         }
-        return Math.abs(ChronoUnit.DAYS.between(dueDate, LocalDate.now()));
+        return Math.abs(ChronoUnit.DAYS.between(createdAt, doneDate));
     }
 }

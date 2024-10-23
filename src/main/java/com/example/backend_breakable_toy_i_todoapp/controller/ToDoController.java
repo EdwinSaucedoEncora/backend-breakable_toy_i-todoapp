@@ -17,9 +17,15 @@ import java.util.UUID;
 public class ToDoController {
     @Autowired TaskService service;
     @RequestMapping
-    public ResponseEntity<AllTasksResponse> getAllTasks(@RequestParam(defaultValue = "") String name, @RequestParam(defaultValue = "all") String priority, @RequestParam(defaultValue = "all") String status, @RequestParam(defaultValue = "1") Integer page) {
+    public ResponseEntity<AllTasksResponse> getAllTasks(
+            @RequestParam(defaultValue = "") String name,
+            @RequestParam(defaultValue = "all") String priority,
+            @RequestParam(defaultValue = "all") String status,
+            @RequestParam(defaultValue = "1") Integer page,
+            @RequestParam(required = false) String sort
+    ) {
         try {
-            return new ResponseEntity<>(service.getAllTasks(status, name, priority, page), HttpStatus.OK);
+            return new ResponseEntity<>(service.getAllTasks(status, name, priority, page, sort), HttpStatus.OK);
         } catch (RuntimeException e) {
             // If any error return an empty list to avoid rendering errors
             return new ResponseEntity<>(new AllTasksResponse(null, 0), HttpStatus.BAD_REQUEST);

@@ -9,7 +9,7 @@ import java.util.List;
 import java.util.UUID;
 
 public interface TaskServiceInterface {
-    public AllTasksResponse getAllTasks(String status, String name, String priority, Integer page);
+    public AllTasksResponse getAllTasks(String status, String name, String priority, Integer page, String sort);
     public Task getTaskById(UUID id);
     public ResponseEntity<String> deleteTaskById(UUID id);
     public ResponseEntity<String> addTask(Task newTask);

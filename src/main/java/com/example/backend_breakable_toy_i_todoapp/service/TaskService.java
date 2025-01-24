@@ -1,10 +1,9 @@
 package com.example.backend_breakable_toy_i_todoapp.service;
 
+import com.example.backend_breakable_toy_i_todoapp.config.*;
 import com.example.backend_breakable_toy_i_todoapp.dao.TaskDAO;
-import com.example.backend_breakable_toy_i_todoapp.model.AllTasksResponse;
 import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
-import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
@@ -12,7 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Service
@@ -143,59 +142,144 @@ public class TaskService implements  TaskServiceInterface{
         // Attempt to fetch the task
         Task task = taskDAO.getTask(id);
         if (task == null) {
-            throw new NoSuchElementException("Task with ID " + id + " does not exist.");
+            throw new TaskNotFoundException("Task with ID " + id + " does not exist.");
         }
 
         return task;
     }
 
-    public ResponseEntity<String> deleteTaskById(UUID id){
-        if(taskDAO.hasTask(id)){
-            taskDAO.deleteTask(id);
-            return new ResponseEntity<>("Task " + id.toString() + " was deleted!", HttpStatus.OK);
+    public ResponseEntity<String> deleteTaskById(UUID id) {
+        if (taskDAO.hasTask(id)) {
+            throw new TaskNotFoundException("Task not found with ID: " + id);
         }
-        return  new ResponseEntity<>("Task not found", HttpStatus.NOT_FOUND);
+
+        taskDAO.deleteTask(id);
+        return new ResponseEntity<>("Task " + id.toString() + " was deleted!", HttpStatus.OK);
     }
-    public  ResponseEntity<String> addTask(Task newTask){
-        if(newTask.hasRequiredFields()){
-            return  new ResponseEntity<String>(HttpStatus.BAD_REQUEST);
+
+    public ResponseEntity<String> updateTask(UUID id, Task updatedTask) {
+        // Check if the priority is valid
+        if (!priorities.contains(updatedTask.getPriority())) {
+            throw new InvalidPriorityException("Invalid priority: " + updatedTask.getPriority());
         }
-        if(!priorities.contains(newTask.getPriority())){
-            return  new ResponseEntity<String>(HttpStatus.BAD_REQUEST);
+
+        // Check if the task exists
+        if (taskDAO.hasTask(id)) {
+            throw new TaskNotFoundException("Task not found with ID: " + id);
         }
-        return  new ResponseEntity<String>(taskDAO.addTask(newTask).toString(), HttpStatus.OK);
-    }
-    public ResponseEntity<String> updateTask(UUID id, Task updatedTask){
-//        if(updatedTask.hasRequiredFields()){
-//            return new ResponseEntity<>("Provided task has missing properties", HttpStatus.BAD_REQUEST);
-//        }
-        if(!priorities.contains(updatedTask.getPriority())){
-            return  new ResponseEntity<String>(HttpStatus.BAD_REQUEST);
+
+        // Assuming there are required fields to be checked, uncommenting the validation
+        if (updatedTask.getName() == null || updatedTask.getPriority() == null) {
+            throw new MissingTaskFieldsException("Task is missing required fields (name or priority).");
         }
-        if(!taskDAO.hasTask(id)){
-            return  new ResponseEntity<String>("Task not found", HttpStatus.BAD_REQUEST);
-        }
+
+        // Update the task
         taskDAO.updateTask(id, updatedTask);
-        return new ResponseEntity<String>("Task " + id.toString() + " updated.", HttpStatus.OK);
+        return new ResponseEntity<>("Task " + id.toString() + " updated.", HttpStatus.OK);
+    }
+
+    public ResponseEntity<String> addTask(Task newTask) {
+        // Check if the task has required fields
+        if (newTask.hasRequiredFields()) {
+            throw new MissingTaskFieldsException("Task has missing required fields.");
+        }
+
+        // Check if the priority is valid
+        if (!priorities.contains(newTask.getPriority())) {
+            throw new InvalidTaskException("Invalid priority: " + newTask.getPriority());
+        }
+
+        // Add the task
+        taskDAO.addTask(newTask);
+        return new ResponseEntity<>("Task added successfully.", HttpStatus.CREATED);
     }
 
     public ResponseEntity<String> setDoneDateById(UUID id) {
-        if(!taskDAO.hasTask(id)){
-            return new ResponseEntity<>("Task not found for update", HttpStatus.BAD_REQUEST);
+        // Check if the task exists
+        if (taskDAO.hasTask(id)) {
+            throw new TaskNotFoundException("Task not found with ID: " + id);
         }
+
+        // Set the done date for the task
         taskDAO.setDoneDate(id);
         return new ResponseEntity<>("Task done date applied.", HttpStatus.OK);
     }
 
     public ResponseEntity<String> unsetDoneDateById(UUID id) {
-        if(!taskDAO.hasTask(id)){
-            return new ResponseEntity<>("Task not found for update", HttpStatus.BAD_REQUEST);
+        // Check if the task exists
+        if (taskDAO.hasTask(id)) {
+            throw new TaskNotFoundException("Task not found with ID: " + id);
         }
+
+        // Unset the done date for the task
         taskDAO.unsetDoneDate(id);
-        return new ResponseEntity<>("Task done date remove.", HttpStatus.OK);
+        return new ResponseEntity<>("Task done date removed.", HttpStatus.OK);
     }
 
-    public ResponseEntity<AverageDetails> getAverageDetails(){
-        return new ResponseEntity<>(taskDAO.getAverageDetails(), HttpStatus.OK);
+    public ResponseEntity<AverageDetails> getAverageDetails() {
+        try {
+            // Retrieve tasks from the DAO
+            List<Task> taskList = taskDAO.getTasksForAverageDetails();
+
+            // Check if taskList is empty or null
+            if (taskList == null || taskList.isEmpty()) {
+                throw new TaskDataException("No tasks found with valid createdAt and doneDate.");
+            }
+
+            // Calculate average details
+            AverageDetails averageDetails = calculateAverageDetails(taskList);
+
+            return new ResponseEntity<>(averageDetails, HttpStatus.OK);
+        } catch (TaskDataException | InvalidTaskDataException | CalculationException ex) {
+            // Re-throw the exception for global handling
+            throw ex;
+        } catch (Exception ex) {
+            // Catch all other unexpected exceptions
+            throw new RuntimeException("An unexpected error occurred: " + ex.getMessage(), ex);
+        }
+    }
+
+    private AverageDetails calculateAverageDetails(List<Task> taskList) {
+        try {
+            // Same calculation logic as before
+            AtomicLong highCount = new AtomicLong();
+            AtomicLong highAverage = new AtomicLong();
+            AtomicLong mediumCount = new AtomicLong();
+            AtomicLong mediumAverage = new AtomicLong();
+            AtomicLong lowCount = new AtomicLong();
+            AtomicLong lowAverage = new AtomicLong();
+
+            Comparator<Task> comparator = Comparator.comparing(Task::getPriority);
+            taskList.stream()
+                    .sorted(comparator)
+                    .forEach(task -> {
+                        if ("high".equals(task.getPriority())) {
+                            highCount.getAndIncrement();
+                            highAverage.addAndGet(task.getDiffDays());
+                        } else if ("medium".equals(task.getPriority())) {
+                            mediumCount.getAndIncrement();
+                            mediumAverage.addAndGet(task.getDiffDays());
+                        } else if ("low".equals(task.getPriority())) {
+                            lowCount.getAndIncrement();
+                            lowAverage.addAndGet(task.getDiffDays());
+                        } else {
+                            // Invalid priority in task data
+                            throw new InvalidTaskDataException("Task has an invalid priority: " + task.getPriority());
+                        }
+                    });
+
+            double hAverage = highCount.get() > 0 ? (double) highAverage.get() / highCount.get() : 0;
+            double mAverage = mediumCount.get() > 0 ? (double) mediumAverage.get() / mediumCount.get() : 0;
+            double lAverage = lowCount.get() > 0 ? (double) lowAverage.get() / lowCount.get() : 0;
+
+            double totalCount = highCount.get() + mediumCount.get() + lowCount.get();
+            double totalAverage = totalCount > 0
+                    ? (double) (highAverage.get() + mediumAverage.get() + lowAverage.get()) / totalCount
+                    : 0;
+
+            return new AverageDetails(hAverage, mAverage, lAverage, totalAverage);
+        } catch (ArithmeticException ex) {
+            throw new CalculationException("Error occurred during calculation: " + ex.getMessage());
+        }
     }
 }

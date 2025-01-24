@@ -1,15 +1,13 @@
 package com.example.backend_breakable_toy_i_todoapp.dao;
 
-import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import org.springframework.stereotype.Repository;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.time.LocalDate;
 import java.util.*;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.stream.Collectors;
 
 @Repository
 public class TaskDAO implements TaskDAOInterface{
@@ -37,12 +35,11 @@ public class TaskDAO implements TaskDAOInterface{
         }
     }
 
-    public UUID addTask(Task newTask) {
+    public void addTask(Task newTask) {
         if (newTask == null || newTask.getName() == null || newTask.getPriority() == null) {
             throw new IllegalArgumentException("Task and its required fields must not be null");
         }
         tasks.put(newTask.getId(), newTask);
-        return newTask.getId();
     }
 
     public LinkedHashMap<UUID, Task> getAll() {
@@ -71,7 +68,7 @@ public class TaskDAO implements TaskDAOInterface{
     }
 
     public boolean hasTask(UUID id){
-        return tasks.containsKey(id);
+        return !tasks.containsKey(id);
     }
 
     public void setDoneDate(UUID id){
@@ -83,45 +80,9 @@ public class TaskDAO implements TaskDAOInterface{
         targetTask.unsetDoneDate();
     }
 
-    public AverageDetails getAverageDetails(){
-        AtomicLong highCount = new AtomicLong();
-        AtomicLong highAverage = new AtomicLong();
-        AtomicLong mediumCount = new AtomicLong();
-        AtomicLong mediumAverage = new AtomicLong();;
-        AtomicLong lowCount = new AtomicLong();;
-        AtomicLong lowAverage = new AtomicLong();;
-        List<Task> taskList = tasks.values().stream().filter(task -> task.getCreatedAt() != null && task.getDoneDate() != null).toList();
-        Comparator<Task> comparator = (t1, t2) -> t1.getPriority().compareTo(t2.getPriority());
-        taskList.stream().sorted(comparator).forEach(task -> {
-            if(task.getPriority().equals("high")){
-                highCount.getAndIncrement();
-                highAverage.addAndGet(task.getDiffDays());
-            }
-            if(task.getPriority().equals("medium")){
-                mediumCount.getAndIncrement();
-                mediumAverage.addAndGet(task.getDiffDays());
-            }
-            if(task.getPriority().equals("low")){
-                lowCount.getAndIncrement();
-                lowAverage.addAndGet(task.getDiffDays());
-            }
-        });
-
-        double hAverage = 0, mAverage = 0, lAverage = 0, totalAverage = 0;
-        if(highCount.getPlain() > 0){
-            hAverage = (double) highAverage.getPlain() /highCount.getPlain();
-        }
-        if(mediumCount.getPlain() > 0){
-            mAverage = (double) mediumAverage.getPlain() /mediumCount.getPlain();
-        }
-        if(lowCount.getPlain() > 0){
-            lAverage = (double) lowAverage.getPlain() /lowCount.getPlain();
-        }
-
-        double totalAverageDivider = (highCount.getPlain() + mediumCount.getPlain() + lowCount.getPlain());
-        totalAverageDivider = totalAverageDivider > 0 ? totalAverageDivider : 1;
-        totalAverage = (double) ((highAverage.getPlain() + mediumAverage.getPlain() + lowAverage.getPlain()) / totalAverageDivider);
-
-        return new AverageDetails(hAverage, mAverage, lAverage, totalAverage);
+    public List<Task> getTasksForAverageDetails() {
+        return tasks.values().stream()
+                .filter(task -> task.getCreatedAt() != null && task.getDoneDate() != null)
+                .collect(Collectors.toList());
     }
 }

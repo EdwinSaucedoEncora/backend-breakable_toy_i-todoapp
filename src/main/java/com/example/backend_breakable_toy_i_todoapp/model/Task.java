@@ -5,7 +5,7 @@ import java.util.UUID;
 import java.time.temporal.ChronoUnit;
 
 public class Task {
-    private final UUID id;
+    private UUID id;
     private String name;
     private LocalDate dueDate;
     private LocalDate doneDate;
@@ -37,7 +37,9 @@ public class Task {
         setPriority(priority);
         this.updatedAt = LocalDate.now();
     }
-
+    public void setId(UUID id){
+        this.id = id;
+    }
     public Task(String name, String priority, LocalDate createdAt){
         setPriority(priority);
         setName(name);

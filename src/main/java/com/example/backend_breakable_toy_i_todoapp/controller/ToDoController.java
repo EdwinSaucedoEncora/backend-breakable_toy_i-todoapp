@@ -33,28 +33,29 @@ public class ToDoController {
         Task task = service.getTaskById(id);
         return ResponseEntity.ok(task);
     }
-    @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
-    public ResponseEntity<String> updateTask(@PathVariable UUID id, @RequestBody Task updatedTask){
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> deleteTaskById(@PathVariable UUID id) {
+        return service.deleteTaskById(id);
+    }
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateTask(@PathVariable UUID id, @RequestBody Task updatedTask) {
         return service.updateTask(id, updatedTask);
     }
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
-    public ResponseEntity<String> deleteTaskById(@PathVariable UUID id){
-        return service.deleteTaskById(id);
-    }
 
-    @RequestMapping(method = RequestMethod.POST)
-    public ResponseEntity<String> addTask(@RequestBody Task newTask){
+    @PostMapping
+    public ResponseEntity<String> addTask(@RequestBody Task newTask) {
         return service.addTask(newTask);
     }
 
-    @RequestMapping(value = "{id}/done", method = RequestMethod.PUT)
-    public ResponseEntity<String> setDoneDateById(@PathVariable UUID id){
+    @PutMapping("{id}/done")
+    public ResponseEntity<String> setDoneDateById(@PathVariable UUID id) {
         return service.setDoneDateById(id);
     }
 
-    @RequestMapping(value = "{id}/undone", method = RequestMethod.PUT)
-    public ResponseEntity<String> unsetDoneDateById(@PathVariable UUID id){
+    @PutMapping("{id}/undone")
+    public ResponseEntity<String> unsetDoneDateById(@PathVariable UUID id) {
         return service.unsetDoneDateById(id);
     }
 }

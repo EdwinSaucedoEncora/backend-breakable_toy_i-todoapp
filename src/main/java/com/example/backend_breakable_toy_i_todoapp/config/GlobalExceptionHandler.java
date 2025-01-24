@@ -15,9 +15,29 @@ public class GlobalExceptionHandler {
         return ResponseEntity.badRequest().body("Invalid input: " + ex.getMessage());
     }
 
+    @ExceptionHandler(InvalidPriorityException.class)
+    public ResponseEntity<String> handleInvalidPriority(InvalidPriorityException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(TaskNotFoundException.class)
+    public ResponseEntity<String> handleTaskNotFound(TaskNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(MissingTaskFieldsException.class)
+    public ResponseEntity<String> handleMissingTaskFields(MissingTaskFieldsException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
+    }
+
     @ExceptionHandler(NoSuchElementException.class)
     public ResponseEntity<String> handleNoSuchElement(NoSuchElementException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(ex.getMessage());
+    }
+
+    @ExceptionHandler(InvalidTaskException.class)
+    public ResponseEntity<String> handleInvalidTask(InvalidTaskException ex) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(ex.getMessage());
     }
 
     @ExceptionHandler(Exception.class)

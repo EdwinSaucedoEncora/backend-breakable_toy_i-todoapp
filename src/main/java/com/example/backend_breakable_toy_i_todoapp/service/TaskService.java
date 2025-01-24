@@ -6,12 +6,14 @@ import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import org.jetbrains.annotations.NotNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
 @Service
 public class TaskService implements  TaskServiceInterface{
@@ -20,67 +22,131 @@ public class TaskService implements  TaskServiceInterface{
     protected final int PAGE_SIZE = 10;
     protected final List<String> priorities = List.of("high", "medium", "low");
 
-    public AllTasksResponse getAllTasks(String status, String name, String priority, Integer page, String sort){
-        List <Task> tasks = new ArrayList<Task>(taskDAO.getAll().values());
-        // Sorting by
-        if(sort != null){
-            Comparator<Task> sortComparator = getTaskComparator(sort);
-            tasks = tasks.stream().sorted(Comparator.nullsLast(sortComparator)).toList();
+    public Page<Task> getAllTasks(String status, String name, String priority, Pageable pageable) {
+        // Validate inputs
+
+        if (pageable == null) {
+            throw new IllegalArgumentException("Pageable must not be null.");
         }
-        int size = tasks.size();
-        if(status != null){
+        if (pageable.getPageNumber() < 0) {
+            throw new IllegalArgumentException("Page number must be greater than or equal to 0.");
+        }
+        if (!List.of("all", "done", "undone").contains(status.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid status value. Allowed values are: all, done, undone.");
+        }
+        if (!List.of("all", "high", "medium", "low").contains(priority.toLowerCase())) {
+            throw new IllegalArgumentException("Invalid priority value. Allowed values are: all, high, medium, low.");
+        }
+        if (name != null && name.length() > 255) {
+            throw new IllegalArgumentException("Name filter is too long. Maximum length is 255 characters.");
+        }
+
+        try {
+            // Override the page size with a fixed value
+            Pageable fixedPageable = PageRequest.of(pageable.getPageNumber(), PAGE_SIZE, pageable.getSort());
+
+            // Fetch all tasks
+            List<Task> tasks = new ArrayList<>(taskDAO.getAll().values());
+            if (tasks.isEmpty()) {
+                throw new NoSuchElementException("No tasks found in the system.");
+            }
+
             // Filter by status
-            if(status.equals("done")){
-                tasks = tasks.stream().filter(task -> task.getDoneDate() != null).toList();
+            if (!"all".equalsIgnoreCase(status)) {
+                tasks = tasks.stream().filter(task -> {
+                    if ("done".equalsIgnoreCase(status)) {
+                        return task.getDoneDate() != null;
+                    } else if ("undone".equalsIgnoreCase(status)) {
+                        return task.getDoneDate() == null;
+                    }
+                    return true;
+                }).collect(Collectors.toList());
             }
-            else if(status.equals("undone")) {
-                tasks = tasks.stream().filter(task -> task.getDoneDate() == null).toList();
-            }
-        }
-        if(priority != null){
+
             // Filter by priority
-            if(priority.equals("high")){
-                tasks = tasks.stream().filter(task -> task.getPriority().equals("high")).toList();
+            if (!"all".equalsIgnoreCase(priority)) {
+                tasks = tasks.stream()
+                        .filter(task -> priority.equalsIgnoreCase(task.getPriority()))
+                        .collect(Collectors.toList());
             }
-            else if(priority.equals("medium")) {
-                tasks = tasks.stream().filter(task -> task.getPriority().equals("medium")).toList();
-            }
-            else if(priority.equals("low")) {
-                tasks = tasks.stream().filter(task -> task.getPriority().equals("low")).toList();
-            }
-        }
-        if(name != null){
-           tasks = tasks.stream()
-                   .filter(task -> task.getName().toLowerCase().contains(name.toLowerCase()))
-                   .toList();
 
+            // Filter by name
+            if (name != null && !name.isEmpty()) {
+                tasks = tasks.stream()
+                        .filter(task -> task.getName() != null && task.getName().toLowerCase().contains(name.toLowerCase()))
+                        .collect(Collectors.toList());
+            }
+
+            // Apply sorting
+            Sort sort = fixedPageable.getSort();
+            if (sort.isSorted()) {
+                Comparator<Task> comparator = sort.stream()
+                        .map(order -> {
+                            String property = order.getProperty();
+                            Sort.Direction direction = order.getDirection();
+                            Comparator<Task> propertyComparator;
+
+                            // Define comparators for different fields
+                            switch (property) {
+                                case "name":
+                                    propertyComparator = Comparator.comparing(Task::getName, String.CASE_INSENSITIVE_ORDER);
+                                    break;
+                                case "priority":
+                                    propertyComparator = Comparator.comparing(task -> priorities.indexOf(task.getPriority()));
+                                    break;
+                                case "doneDate":
+                                    propertyComparator = Comparator.comparing(Task::getDoneDate, Comparator.nullsLast(Comparator.naturalOrder()));
+                                    break;
+                                case "status":
+                                    // Custom comparator for status: "done" tasks come first
+                                    propertyComparator = Comparator.comparing(task -> task.getDoneDate() != null ? "done" : "undone");
+                                    break;
+                                default:
+                                    throw new IllegalArgumentException("Invalid sort property: " + property);
+                            }
+
+                            return direction == Sort.Direction.DESC ? propertyComparator.reversed() : propertyComparator;
+                        })
+                        .reduce(Comparator::thenComparing)
+                        .orElseThrow(() -> new IllegalStateException("No valid sort comparator found."));
+
+                tasks.sort(comparator);
+            }
+
+            // Apply pagination
+            int start = (int) fixedPageable.getOffset();
+            int end = Math.min(start + fixedPageable.getPageSize(), tasks.size());
+            if (start > tasks.size()) {
+                return new PageImpl<>(Collections.emptyList(), fixedPageable, tasks.size());
+            }
+
+            List<Task> paginatedTasks = tasks.subList(start, end);
+            return new PageImpl<>(paginatedTasks, fixedPageable, tasks.size());
+        } catch (IllegalArgumentException e) {
+            // Handle expected validation errors
+            throw new IllegalArgumentException("Error while processing tasks: " + e.getMessage(), e);
+        } catch (NoSuchElementException e) {
+            // Handle empty task lists
+            throw new NoSuchElementException("Error: " + e.getMessage());
+        } catch (Exception e) {
+            // Catch-all for unexpected errors
+            throw new RuntimeException("An unexpected error occurred while fetching tasks.", e);
         }
-        // Used for autoincremental index;
-        AtomicInteger index = new AtomicInteger();
-        // Get autoincrement index and filter by pagination
-        List<Task> filtered = tasks.stream()
-                .map(el -> index.getAndIncrement())
-                .filter(i -> (i < (page * PAGE_SIZE) && i >= ((page - 1) * PAGE_SIZE)))
-                .map(tasks::get).toList();
-        AllTasksResponse tasksResponse  = new AllTasksResponse(filtered, size);
-        return tasksResponse;
     }
 
-    private static @NotNull Comparator<Task> getTaskComparator(String sort) {
-        Comparator<Task> sortComparator;
-        if(sort.equals("dueDate")){
-            sortComparator = (t1, t2) -> t1.getDueDate() != null && t2.getDueDate() != null ? t1.getDueDate().compareTo(t2.getDueDate()) : 1;
-        } else if (sort.equals("priority")) {
-            sortComparator = (t1, t2) -> t1.getPriority().toUpperCase().compareTo(t2.getPriority().toUpperCase());
-        } else {
-            sortComparator = (t1, t2) -> t1.getName().toUpperCase().compareTo(t2.getName().toUpperCase());
-
+    public Task getTaskById(UUID id) {
+        // Null check
+        if (id == null) {
+            throw new IllegalArgumentException("The provided task ID must not be null.");
         }
-        return sortComparator;
-    }
 
-    public Task getTaskById(UUID id){
-        return  taskDAO.getTask(id);
+        // Attempt to fetch the task
+        Task task = taskDAO.getTask(id);
+        if (task == null) {
+            throw new NoSuchElementException("Task with ID " + id + " does not exist.");
+        }
+
+        return task;
     }
 
     public ResponseEntity<String> deleteTaskById(UUID id){

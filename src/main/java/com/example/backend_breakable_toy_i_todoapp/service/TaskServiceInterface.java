@@ -3,13 +3,15 @@ package com.example.backend_breakable_toy_i_todoapp.service;
 import com.example.backend_breakable_toy_i_todoapp.model.AllTasksResponse;
 import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 import java.util.UUID;
 
 public interface TaskServiceInterface {
-    public AllTasksResponse getAllTasks(String status, String name, String priority, Integer page, String sort);
+    public Page<Task> getAllTasks(String status, String name, String priority, Pageable pageable);
     public Task getTaskById(UUID id);
     public ResponseEntity<String> deleteTaskById(UUID id);
     public ResponseEntity<String> addTask(Task newTask);

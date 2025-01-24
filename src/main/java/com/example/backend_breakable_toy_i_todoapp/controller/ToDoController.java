@@ -1,10 +1,10 @@
 package com.example.backend_breakable_toy_i_todoapp.controller;
 
-import com.example.backend_breakable_toy_i_todoapp.model.AllTasksResponse;
-import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import com.example.backend_breakable_toy_i_todoapp.service.TaskService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -16,27 +16,23 @@ import java.util.UUID;
 @RequestMapping(value="/todos")
 public class ToDoController {
     @Autowired TaskService service;
-    @RequestMapping
-    public ResponseEntity<AllTasksResponse> getAllTasks(
+
+    @GetMapping
+    public ResponseEntity<Page<Task>> getAllTasks(
+            @RequestParam(defaultValue = "all") String status,
             @RequestParam(defaultValue = "") String name,
             @RequestParam(defaultValue = "all") String priority,
-            @RequestParam(defaultValue = "all") String status,
-            @RequestParam(defaultValue = "1") Integer page,
-            @RequestParam(required = false) String sort
-    ) {
-        try {
-            return new ResponseEntity<>(service.getAllTasks(status, name, priority, page, sort), HttpStatus.OK);
-        } catch (RuntimeException e) {
-            // If any error return an empty list to avoid rendering errors
-            return new ResponseEntity<>(new AllTasksResponse(null, 0), HttpStatus.BAD_REQUEST);
-        }
+            Pageable pageable) {
+
+        Page<Task> tasks = service.getAllTasks(status, name, priority, pageable);
+        return ResponseEntity.ok(tasks);
     }
 
-    @RequestMapping(value = "/{id}", method = RequestMethod.GET)
-    public ResponseEntity<Task> getTaskById(@PathVariable UUID id){
-        return new ResponseEntity<>(service.getTaskById(id), HttpStatus.OK);
+    @GetMapping(value = "/{id}")
+    public ResponseEntity<Task> getTaskById(@PathVariable UUID id) {
+        Task task = service.getTaskById(id);
+        return ResponseEntity.ok(task);
     }
-
     @RequestMapping(value = "/{id}", method = RequestMethod.PUT)
     public ResponseEntity<String> updateTask(@PathVariable UUID id, @RequestBody Task updatedTask){
         return service.updateTask(id, updatedTask);
@@ -44,7 +40,7 @@ public class ToDoController {
 
     @RequestMapping(value = "/{id}", method = RequestMethod.DELETE)
     public ResponseEntity<String> deleteTaskById(@PathVariable UUID id){
-         return service.deleteTaskById(id);
+        return service.deleteTaskById(id);
     }
 
     @RequestMapping(method = RequestMethod.POST)
@@ -52,19 +48,14 @@ public class ToDoController {
         return service.addTask(newTask);
     }
 
-    @RequestMapping(value = "/{id}/done", method = RequestMethod.PUT)
+    @RequestMapping(value = "{id}/done", method = RequestMethod.PUT)
     public ResponseEntity<String> setDoneDateById(@PathVariable UUID id){
         return service.setDoneDateById(id);
     }
 
-    @RequestMapping(value = "/{id}/undone", method = RequestMethod.PUT)
+    @RequestMapping(value = "{id}/undone", method = RequestMethod.PUT)
     public ResponseEntity<String> unsetDoneDateById(@PathVariable UUID id){
         return service.unsetDoneDateById(id);
-    }
-
-    @RequestMapping(value = "/metrics", method = RequestMethod.GET)
-    public ResponseEntity<AverageDetails> getAverageDetails(){
-        return service.getAverageDetails();
     }
 }
 

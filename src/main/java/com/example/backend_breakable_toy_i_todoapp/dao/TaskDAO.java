@@ -4,39 +4,69 @@ import com.example.backend_breakable_toy_i_todoapp.model.AverageDetails;
 import com.example.backend_breakable_toy_i_todoapp.model.Task;
 import org.springframework.stereotype.Repository;
 
-import java.util.Comparator;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.UUID;
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.time.LocalDate;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 
 @Repository
 public class TaskDAO implements TaskDAOInterface{
     private final LinkedHashMap<UUID, Task> tasks;
-    public TaskDAO(){
+    public TaskDAO() {
         tasks = new LinkedHashMap<>();
-        Task task = new Task("Task 1", "high");
-        Task task2 = new Task("Task 2", "medium");
-        Task task3 = new Task("Task 3", "low");
-        tasks.put(task.getId(), task);
-        tasks.put(task2.getId(), task2);
-        tasks.put(task3.getId(), task3);
+        loadTasksFromFile();
     }
-    public UUID addTask(Task newTask){
+
+    private void loadTasksFromFile() {
+        try (BufferedReader reader = new BufferedReader(new InputStreamReader(
+                Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("tasks.txt"))))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                String[] parts = line.split(",");
+                if (parts.length == 2) {
+                    String name = parts[0].trim();
+                    String priority = parts[1].trim();
+                    Task task = new Task(name, priority);
+                    tasks.put(task.getId(), task);
+                }
+            }
+        } catch (IOException | NullPointerException e) {
+            throw new RuntimeException("Failed to load tasks from file: " + "tasks.txt", e);
+        }
+    }
+
+    public UUID addTask(Task newTask) {
+        if (newTask == null || newTask.getName() == null || newTask.getPriority() == null) {
+            throw new IllegalArgumentException("Task and its required fields must not be null");
+        }
         tasks.put(newTask.getId(), newTask);
         return newTask.getId();
     }
+
     public LinkedHashMap<UUID, Task> getAll() {
         return tasks;
     }
-    public Task getTask(UUID id){
+
+    public Task getTask(UUID id) {
+        if (!tasks.containsKey(id)) {
+            throw new NoSuchElementException("Task with ID " + id + " not found");
+        }
         return tasks.get(id);
     }
-    public void deleteTask(UUID id){
+
+    public void deleteTask(UUID id) {
+        if (!tasks.containsKey(id)) {
+            throw new NoSuchElementException("Task with ID " + id + " not found");
+        }
         tasks.remove(id);
     }
 
-    public void updateTask(UUID id, Task updatedTask){
+    public void updateTask(UUID id, Task updatedTask) {
+        if (!tasks.containsKey(id)) {
+            throw new NoSuchElementException("Task with ID " + id + " not found");
+        }
         tasks.replace(id, updatedTask);
     }
 
@@ -60,7 +90,7 @@ public class TaskDAO implements TaskDAOInterface{
         AtomicLong mediumAverage = new AtomicLong();;
         AtomicLong lowCount = new AtomicLong();;
         AtomicLong lowAverage = new AtomicLong();;
-        List<Task> taskList = tasks.values().stream().filter(task -> task.getDueDate() != null && task.getDoneDate() == null).toList();
+        List<Task> taskList = tasks.values().stream().filter(task -> task.getCreatedAt() != null && task.getDoneDate() != null).toList();
         Comparator<Task> comparator = (t1, t2) -> t1.getPriority().compareTo(t2.getPriority());
         taskList.stream().sorted(comparator).forEach(task -> {
             if(task.getPriority().equals("high")){

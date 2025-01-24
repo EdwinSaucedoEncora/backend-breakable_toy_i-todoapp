@@ -38,6 +38,12 @@ public class Task {
         this.updatedAt = LocalDate.now();
     }
 
+    public Task(String name, String priority, LocalDate createdAt){
+        setPriority(priority);
+        setName(name);
+        this.createdAt = createdAt;
+        this.id = UUID.randomUUID();
+    }
     public void setPriority(String priority) {
         this.priority = priority;
     }
